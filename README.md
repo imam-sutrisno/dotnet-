@@ -1,6 +1,6 @@
-# dotnet-
+# .NET Cheatsheet
 
-A comprehensive .NET cheatsheet repository.
+A comprehensive .NET cheatsheet repository for quick reference.
 
 ## Contents
 
