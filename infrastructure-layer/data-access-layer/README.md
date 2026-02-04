@@ -1,5 +1,7 @@
 # Data Access Layer dengan Dapper
 
+> **🚀 Baru mulai?** Lihat [Quick Start Guide](./QUICKSTART.md) untuk panduan cepat memulai!
+
 ## Daftar Isi
 - [Pengenalan](#pengenalan)
 - [1. Result Mapping](#1-result-mapping)
@@ -7,6 +9,7 @@
 - [3. Query Execution](#3-query-execution)
 - [4. RAW SQL Best Practice](#4-raw-sql-best-practice)
 - [Hands-On Project](#hands-on-project)
+- [Quick Start Guide](./QUICKSTART.md)
 
 ---
 
