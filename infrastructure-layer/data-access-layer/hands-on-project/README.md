@@ -1,14 +1,15 @@
 # Product API - Hands-On Project
 
 ## Deskripsi
-Ini adalah project Web API menggunakan .NET 8 dengan Dapper sebagai Data Access Layer. Project ini mendemonstrasikan implementasi best practices dalam penggunaan Dapper untuk CRUD operations, result mapping, dan arsitektur yang baik.
+Ini adalah project Web API menggunakan .NET 6 dengan Dapper sebagai Data Access Layer dan MySQL sebagai database. Project ini mendemonstrasikan implementasi best practices dalam penggunaan Dapper untuk CRUD operations, result mapping, dan arsitektur yang baik.
 
 ## Teknologi yang Digunakan
-- ✅ .NET 8 (Web API)
+- ✅ .NET 6 (Web API)
 - ✅ Dapper 2.1.28 (Micro-ORM)
-- ✅ Microsoft.Data.SqlClient (Database Provider)
-- ✅ SQL Server LocalDB
+- ✅ MySqlConnector (MySQL Database Provider)
+- ✅ MySQL Database
 - ✅ Swagger/OpenAPI (API Documentation)
+- ✅ DbConnectionFactory Pattern (Reusable connection factory)
 
 ## Struktur Project
 
@@ -26,12 +27,16 @@ ProductAPI/
 │
 ├── Infrastructure/             # Infrastructure Layer
 │   └── DataAccess/
+│       ├── Context/
+│       │   ├── IDbConnectionFactory.cs     # Connection factory interface
+│       │   ├── MySqlConnectionFactory.cs   # MySQL connection factory
+│       │   └── DatabaseInitializer.cs
 │       ├── Repositories/       # Repository implementations
 │       │   ├── ProductRepository.cs
 │       │   ├── CustomerRepository.cs
 │       │   └── OrderRepository.cs
-│       └── Context/
-│           └── DatabaseInitializer.cs
+│       └── Examples/           # Dapper examples from learndapper.com
+│           └── DapperExamples.cs
 │
 ├── API/                        # API Layer
 │   ├── Controllers/            # API Controllers
@@ -61,6 +66,7 @@ ProductAPI/
 - **Repository Pattern**: Abstraksi data access dengan interface
 - **Dependency Injection**: Loose coupling antar komponen
 - **DTOs**: Pemisahan model domain dan API response
+- **DbConnectionFactory**: Reusable connection factory pattern
 
 ### 3. Query Execution ✅
 - **Query<T>**: Multiple rows (GetAllAsync)
@@ -68,6 +74,16 @@ ProductAPI/
 - **ExecuteScalar<T>**: Single value (GetTotalCountAsync)
 - **Execute**: INSERT, UPDATE, DELETE operations
 - **QueryMultiple**: Transaction dengan multiple operations
+
+### 4. Advanced Dapper Features (dari learndapper.com) ✅
+- **Query Methods**: Query, QueryFirst, QuerySingle, QueryFirstOrDefault, QuerySingleOrDefault
+- **Execute Methods**: Execute, ExecuteScalar
+- **Parameters**: Anonymous parameters, DynamicParameters, List parameters
+- **Relationships**: One-to-One, One-to-Many mapping
+- **Transactions**: Transaction handling dengan rollback
+- **Multiple Result Sets**: QueryMultiple untuk multiple queries
+- **Stored Procedures**: Execute stored procedures dengan output parameters
+- **Bulk Operations**: Bulk insert operations
 
 ### 4. RAW SQL Best Practices ✅
 - **Parameterized Queries**: Semua query menggunakan parameters untuk mencegah SQL injection
@@ -80,8 +96,8 @@ ProductAPI/
 ## Cara Menjalankan
 
 ### Prerequisites
-- .NET 8 SDK
-- SQL Server atau SQL Server LocalDB
+- .NET 6 SDK
+- MySQL Server (atau MySQL Docker container)
 - Visual Studio Code atau Visual Studio 2022 (optional)
 
 ### Langkah-langkah
@@ -102,9 +118,14 @@ ProductAPI/
    ```json
    {
      "ConnectionStrings": {
-       "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=ProductDB;Trusted_Connection=true;TrustServerCertificate=true"
+       "DefaultConnection": "Server=localhost;Port=3306;Database=ProductDB;User=root;Password=yourpassword;"
      }
    }
+   ```
+   
+   Atau gunakan MySQL Docker:
+   ```bash
+   docker run --name mysql-productdb -e MYSQL_ROOT_PASSWORD=yourpassword -e MYSQL_DATABASE=ProductDB -p 3306:3306 -d mysql:8.0
    ```
 
 4. **Build Project**
@@ -245,37 +266,42 @@ Database akan otomatis dibuat saat pertama kali menjalankan aplikasi. Skema yang
 ### Products Table
 ```sql
 CREATE TABLE Products (
-    Id INT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(200) NOT NULL,
-    Description NVARCHAR(1000),
+    Id INT PRIMARY KEY AUTO_INCREMENT,
+    Name VARCHAR(200) NOT NULL,
+    Description VARCHAR(1000),
     Price DECIMAL(18,2) NOT NULL,
     Stock INT NOT NULL DEFAULT 0,
-    Category NVARCHAR(100),
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
+    Category VARCHAR(100),
+    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt DATETIME NULL,
+    INDEX IX_Products_Category (Category),
+    INDEX IX_Products_Name (Name)
 );
 ```
 
 ### Customers Table
 ```sql
 CREATE TABLE Customers (
-    CustomerId INT PRIMARY KEY IDENTITY(1,1),
-    FullName NVARCHAR(200) NOT NULL,
-    Email NVARCHAR(200) NOT NULL UNIQUE,
-    Phone NVARCHAR(50),
-    Address NVARCHAR(500),
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+    CustomerId INT PRIMARY KEY AUTO_INCREMENT,
+    FullName VARCHAR(200) NOT NULL,
+    Email VARCHAR(200) NOT NULL UNIQUE,
+    Phone VARCHAR(50),
+    Address VARCHAR(500),
+    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX IX_Customers_Email (Email)
 );
 ```
 
 ### Orders Table
 ```sql
 CREATE TABLE Orders (
-    OrderId INT PRIMARY KEY IDENTITY(1,1),
+    OrderId INT PRIMARY KEY AUTO_INCREMENT,
     CustomerId INT NOT NULL,
-    OrderDate DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    OrderDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     TotalAmount DECIMAL(18,2) NOT NULL,
-    Status NVARCHAR(50) NOT NULL,
+    Status VARCHAR(50) NOT NULL,
+    INDEX IX_Orders_CustomerId (CustomerId),
+    INDEX IX_Orders_OrderDate (OrderDate),
     FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)
 );
 ```
@@ -283,12 +309,14 @@ CREATE TABLE Orders (
 ### OrderItems Table
 ```sql
 CREATE TABLE OrderItems (
-    OrderItemId INT PRIMARY KEY IDENTITY(1,1),
+    OrderItemId INT PRIMARY KEY AUTO_INCREMENT,
     OrderId INT NOT NULL,
     ProductId INT NOT NULL,
     Quantity INT NOT NULL,
     UnitPrice DECIMAL(18,2) NOT NULL,
     TotalPrice DECIMAL(18,2) NOT NULL,
+    INDEX IX_OrderItems_OrderId (OrderId),
+    INDEX IX_OrderItems_ProductId (ProductId),
     FOREIGN KEY (OrderId) REFERENCES Orders(OrderId),
     FOREIGN KEY (ProductId) REFERENCES Products(Id)
 );
@@ -301,12 +329,14 @@ Lihat implementasi di:
 - `OrderRepository.GetByIdWithDetailsAsync()` - Multi-mapping one-to-many
 - `ProductRepository.GetByIdAsync()` - Simple mapping
 - `CustomerRepository.GetByEmailAsync()` - Custom column mapping
+- `DapperExamples.cs` - Comprehensive examples dari learndapper.com
 
 ### 2. Arsitektur yang Baik
 - Pemisahan concerns dengan layer Domain, Infrastructure, API
-- Interface untuk abstraksi (IProductRepository, dll)
+- Interface untuk abstraksi (IProductRepository, IDbConnectionFactory, dll)
 - Dependency Injection untuk loose coupling
 - DTOs untuk data transfer
+- Reusable DbConnectionFactory pattern
 
 ### 3. Query Execution
 - Async/await untuk semua database operations
@@ -320,13 +350,39 @@ Lihat implementasi di:
 - Using statement untuk proper connection disposal
 - Index pada kolom yang sering di-query
 
+### 5. Advanced Dapper (dari learndapper.com)
+- Multiple query methods (Query, QueryFirst, QuerySingle, etc.)
+- Parameter binding (Anonymous, Dynamic, List)
+- Multi-mapping untuk relationships
+- Transaction handling
+- Multiple result sets dengan QueryMultiple
+- Stored procedure execution
+- Bulk operations
+
 ## Troubleshooting
 
 ### Connection Error
 Jika mendapat error koneksi database:
-1. Pastikan SQL Server LocalDB terinstall
+1. Pastikan MySQL Server berjalan
 2. Update connection string di `appsettings.json`
-3. Coba ganti dengan SQL Server instance lain
+3. Pastikan user dan password sudah benar
+4. Cek firewall dan port 3306
+
+### MySQL Docker
+Jika menggunakan Docker:
+```bash
+# Start MySQL container
+docker run --name mysql-productdb -e MYSQL_ROOT_PASSWORD=yourpassword -e MYSQL_DATABASE=ProductDB -p 3306:3306 -d mysql:8.0
+
+# Check logs
+docker logs mysql-productdb
+
+# Stop container
+docker stop mysql-productdb
+
+# Remove container
+docker rm mysql-productdb
+```
 
 ### Port Already in Use
 Jika port 5001/7001 sudah digunakan:
@@ -344,8 +400,11 @@ Setelah memahami project ini, lanjutkan dengan:
 
 ## Referensi
 - [Dapper Documentation](https://github.com/DapperLib/Dapper)
+- [Learn Dapper](https://www.learndapper.com/)
 - [ASP.NET Core Web API](https://docs.microsoft.com/en-us/aspnet/core/web-api/)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+- [MySQL Documentation](https://dev.mysql.com/doc/)
+- [MySqlConnector](https://mysqlconnector.net/)
 
 ---
 

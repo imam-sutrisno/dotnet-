@@ -1,22 +1,22 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using ProductAPI.Domain.Entities;
 using ProductAPI.Domain.Repositories;
+using ProductAPI.Infrastructure.DataAccess.Context;
 
 namespace ProductAPI.Infrastructure.DataAccess.Repositories;
 
 public class CustomerRepository : ICustomerRepository
 {
-    private readonly string _connectionString;
+    private readonly IDbConnectionFactory _connectionFactory;
 
-    public CustomerRepository(string connectionString)
+    public CustomerRepository(IDbConnectionFactory connectionFactory)
     {
-        _connectionString = connectionString;
+        _connectionFactory = connectionFactory;
     }
 
     public async Task<Customer?> GetByIdAsync(int id)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -37,7 +37,7 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<IEnumerable<Customer>> GetAllAsync()
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -55,7 +55,7 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<Customer?> GetByEmailAsync(string email)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -76,7 +76,7 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<Customer> CreateAsync(Customer customer)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         customer.CreatedAt = DateTime.UtcNow;
         
@@ -84,7 +84,7 @@ public class CustomerRepository : ICustomerRepository
             INSERT INTO Customers (FullName, Email, Phone, Address, CreatedAt)
             VALUES (@FullName, @Email, @Phone, @Address, @CreatedAt);
             
-            SELECT CAST(SCOPE_IDENTITY() as int)";
+            SELECT LAST_INSERT_ID()";
         
         var id = await connection.ExecuteScalarAsync<int>(sql, customer);
         customer.CustomerId = id;
@@ -94,7 +94,7 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<bool> UpdateAsync(Customer customer)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             UPDATE Customers 
@@ -112,7 +112,7 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<bool> DeleteAsync(int id)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = "DELETE FROM Customers WHERE CustomerId = @CustomerId";
         

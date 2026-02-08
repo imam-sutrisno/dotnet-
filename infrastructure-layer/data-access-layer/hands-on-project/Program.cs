@@ -10,9 +10,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { 
-        Title = "Product API - Dapper Example", 
+        Title = "Product API - Dapper with MySQL", 
         Version = "v1",
-        Description = "Web API menggunakan Dapper untuk Data Access Layer"
+        Description = "Web API menggunakan Dapper dengan MySQL untuk Data Access Layer"
     });
 });
 
@@ -20,18 +20,17 @@ builder.Services.AddSwaggerGen(c =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+// Register DbConnectionFactory
+builder.Services.AddSingleton<IDbConnectionFactory>(sp => 
+    new MySqlConnectionFactory(connectionString));
+
 // Register repositories with Dependency Injection
-builder.Services.AddScoped<IProductRepository>(sp => 
-    new ProductRepository(connectionString));
-
-builder.Services.AddScoped<ICustomerRepository>(sp => 
-    new CustomerRepository(connectionString));
-
-builder.Services.AddScoped<IOrderRepository>(sp => 
-    new OrderRepository(connectionString));
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 // Register Database Initializer
-builder.Services.AddScoped(sp => new DatabaseInitializer(connectionString));
+builder.Services.AddScoped<DatabaseInitializer>();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -58,7 +57,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"Error initializing database: {ex.Message}");
-        Console.WriteLine("Note: Make sure SQL Server is running and connection string is correct.");
+        Console.WriteLine("Note: Make sure MySQL is running and connection string is correct.");
     }
 }
 
