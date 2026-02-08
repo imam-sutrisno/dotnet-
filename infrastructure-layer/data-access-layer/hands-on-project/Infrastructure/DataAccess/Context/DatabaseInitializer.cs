@@ -15,7 +15,7 @@ public class DatabaseInitializer
     public async Task InitializeAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
-        await connection.OpenAsync();
+        connection.Open();
 
         // Create Tables
         await CreateTablesAsync(connection);
