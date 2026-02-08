@@ -1,23 +1,23 @@
 using System.Data;
 using Dapper;
-using Microsoft.Data.SqlClient;
 using ProductAPI.Domain.Entities;
 using ProductAPI.Domain.Repositories;
+using ProductAPI.Infrastructure.DataAccess.Context;
 
 namespace ProductAPI.Infrastructure.DataAccess.Repositories;
 
 public class ProductRepository : IProductRepository
 {
-    private readonly string _connectionString;
+    private readonly IDbConnectionFactory _connectionFactory;
 
-    public ProductRepository(string connectionString)
+    public ProductRepository(IDbConnectionFactory connectionFactory)
     {
-        _connectionString = connectionString;
+        _connectionFactory = connectionFactory;
     }
 
     public async Task<Product?> GetByIdAsync(int id)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -37,7 +37,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> GetAllAsync()
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -57,7 +57,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> GetByCategoryAsync(string category)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -78,7 +78,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> SearchByNameAsync(string searchTerm)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -102,7 +102,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<Product> CreateAsync(Product product)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         product.CreatedAt = DateTime.UtcNow;
         
@@ -110,7 +110,7 @@ public class ProductRepository : IProductRepository
             INSERT INTO Products (Name, Description, Price, Stock, Category, CreatedAt)
             VALUES (@Name, @Description, @Price, @Stock, @Category, @CreatedAt);
             
-            SELECT CAST(SCOPE_IDENTITY() as int)";
+            SELECT LAST_INSERT_ID()";
         
         var id = await connection.ExecuteScalarAsync<int>(sql, product);
         product.Id = id;
@@ -120,7 +120,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<bool> UpdateAsync(Product product)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         product.UpdatedAt = DateTime.UtcNow;
         
@@ -142,7 +142,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<bool> DeleteAsync(int id)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = "DELETE FROM Products WHERE Id = @Id";
         
@@ -153,7 +153,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<int> GetTotalCountAsync()
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = "SELECT COUNT(*) FROM Products";
         

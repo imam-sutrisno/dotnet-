@@ -1,22 +1,22 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using ProductAPI.Domain.Entities;
 using ProductAPI.Domain.Repositories;
+using ProductAPI.Infrastructure.DataAccess.Context;
 
 namespace ProductAPI.Infrastructure.DataAccess.Repositories;
 
 public class OrderRepository : IOrderRepository
 {
-    private readonly string _connectionString;
+    private readonly IDbConnectionFactory _connectionFactory;
 
-    public OrderRepository(string connectionString)
+    public OrderRepository(IDbConnectionFactory connectionFactory)
     {
-        _connectionString = connectionString;
+        _connectionFactory = connectionFactory;
     }
 
     public async Task<Order?> GetByIdAsync(int id)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -36,7 +36,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<Order?> GetByIdWithDetailsAsync(int id)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -92,7 +92,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<IEnumerable<Order>> GetByCustomerIdAsync(int customerId)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -113,7 +113,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<IEnumerable<Order>> GetAllAsync()
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             SELECT 
@@ -130,7 +130,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<Order> CreateAsync(Order order)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         connection.Open();
         
         using var transaction = connection.BeginTransaction();
@@ -144,7 +144,7 @@ public class OrderRepository : IOrderRepository
                 INSERT INTO Orders (CustomerId, OrderDate, TotalAmount, Status)
                 VALUES (@CustomerId, @OrderDate, @TotalAmount, @Status);
                 
-                SELECT CAST(SCOPE_IDENTITY() as int)";
+                SELECT LAST_INSERT_ID()";
             
             var orderId = await connection.ExecuteScalarAsync<int>(
                 orderSql, 
@@ -182,7 +182,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<bool> UpdateStatusAsync(int orderId, string status)
     {
-        using var connection = new SqlConnection(_connectionString);
+        using var connection = _connectionFactory.CreateConnection();
         
         var sql = @"
             UPDATE Orders 
