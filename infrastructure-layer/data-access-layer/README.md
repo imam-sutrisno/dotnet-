@@ -2,6 +2,8 @@
 
 > **🚀 Baru mulai?** Lihat [Quick Start Guide](./QUICKSTART.md) untuk panduan cepat memulai!
 
+> **📊 Butuh Presentasi?** Download [PowerPoint](./Data-Access-Layer-Presentation.pptx) atau [PDF](./Data-Access-Layer-Presentation.pdf) - lihat [Panduan Presentasi](./PRESENTATION-README.md)
+
 ## Daftar Isi
 - [Pengenalan](#pengenalan)
 - [1. Result Mapping](#1-result-mapping)
