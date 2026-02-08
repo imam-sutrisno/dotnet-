@@ -217,15 +217,24 @@ public class ProductRepository
 
 ## ⚠️ Important Notes
 
-### .NET 6 End of Support
-- .NET 6 reached end of support
-- Project builds successfully but shows EOL warnings
-- Consider upgrading to .NET 8 in the future
+### .NET 6 End of Life Support
+- **Note**: .NET 6 LTS reached end of support on November 12, 2024
+- Project builds successfully but shows end-of-life (EOL) warnings
+- This version was used as per the project requirements
+- **Recommendation**: For production use, consider upgrading to .NET 8 (LTS until November 2026) or later
+- The migration path from .NET 6 to .NET 8 is straightforward and mainly requires updating the TargetFramework
 
-### MySQL Connection String
-- Update username and password
-- Default: `root` / `yourpassword`
-- Can use environment variables for production
+### MySQL Connection String Security
+- **Development**: Update connection string in `appsettings.json` with your credentials
+- **Production**: Use environment variables or secure configuration providers:
+  ```bash
+  # Environment variable
+  export ConnectionStrings__DefaultConnection="Server=...;Password=securepassword"
+  
+  # User secrets (development)
+  dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=...;Password=securepassword"
+  ```
+- Never commit real passwords to source control
 
 ### Testing Requirements
 - Requires MySQL instance to run
